@@ -1,0 +1,169 @@
+import java.sql.*;
+import java.util.Scanner;
+
+class Product {
+    private String id;
+    private String name;
+    private double price;
+    private int quantity;
+
+    public Product(String id, String name, double price, int quantity) {
+        this.id = id;
+        this.name = name;
+        this.price = price;
+        this.quantity = quantity;
+    }
+
+    public String getId() { return id; }
+    public String getName() { return name; }
+    public double getPrice() { return price; }
+    public int getQuantity() { return quantity; }
+
+    public void setName(String name) { this.name = name; }
+    public void setPrice(double price) { this.price = price; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
+}
+
+class ProductController {
+    private Connection conn;
+
+    public ProductController() {
+        try {
+            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/productdb","root","password");
+        } catch(Exception e) {
+            System.out.println(e);
+        }
+    }
+
+    public void addProduct(Product p) {
+        try {
+            conn.setAutoCommit(false);
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO Product VALUES(?,?,?,?)");
+            ps.setString(1, p.getId());
+            ps.setString(2, p.getName());
+            ps.setDouble(3, p.getPrice());
+            ps.setInt(4, p.getQuantity());
+            ps.executeUpdate();
+            conn.commit();
+            System.out.println("Product added successfully.");
+        } catch(Exception e) {
+            try { conn.rollback(); } catch(Exception ex) {}
+            System.out.println("Error: " + e.getMessage());
+        } finally {
+            try { conn.setAutoCommit(true); } catch(Exception ex) {}
+        }
+    }
+
+    public void viewProducts() {
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM Product");
+            System.out.println("ID\tName\tPrice\tQuantity");
+            while(rs.next()) {
+                System.out.println(rs.getString(1) + "\t" + rs.getString(2) + "\t" + rs.getDouble(3) + "\t" + rs.getInt(4));
+            }
+        } catch(Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    public void updateProduct(Product p) {
+        try {
+            conn.setAutoCommit(false);
+            PreparedStatement ps = conn.prepareStatement("UPDATE Product SET ProductName=?, Price=?, Quantity=? WHERE ProductID=?");
+            ps.setString(1, p.getName());
+            ps.setDouble(2, p.getPrice());
+            ps.setInt(3, p.getQuantity());
+            ps.setString(4, p.getId());
+            int rows = ps.executeUpdate();
+            if(rows > 0) {
+                conn.commit();
+                System.out.println("Product updated successfully.");
+            } else {
+                conn.rollback();
+                System.out.println("Product ID not found. Update failed.");
+            }
+        } catch(Exception e) {
+            try { conn.rollback(); } catch(Exception ex) {}
+            System.out.println("Error: " + e.getMessage());
+        } finally {
+            try { conn.setAutoCommit(true); } catch(Exception ex) {}
+        }
+    }
+
+    public void deleteProduct(String id) {
+        try {
+            conn.setAutoCommit(false);
+            PreparedStatement ps = conn.prepareStatement("DELETE FROM Product WHERE ProductID=?");
+            ps.setString(1, id);
+            int rows = ps.executeUpdate();
+            if(rows > 0) {
+                conn.commit();
+                System.out.println("Product deleted successfully.");
+            } else {
+                conn.rollback();
+                System.out.println("Product ID not found. Deletion failed.");
+            }
+        } catch(Exception e) {
+            try { conn.rollback(); } catch(Exception ex) {}
+            System.out.println("Error: " + e.getMessage());
+        } finally {
+            try { conn.setAutoCommit(true); } catch(Exception ex) {}
+        }
+    }
+}
+
+public class ProductManagement {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        ProductController controller = new ProductController();
+
+        while(true) {
+            System.out.println("\n1. Add Product\n2. View Products\n3. Update Product\n4. Delete Product\n5. Exit");
+            System.out.print("Enter your choice: ");
+            int choice = sc.nextInt();
+            sc.nextLine(); // consume newline
+
+            switch(choice) {
+                case 1:
+                    System.out.print("Enter Product ID: ");
+                    String id = sc.nextLine();
+                    System.out.print("Enter Product Name: ");
+                    String name = sc.nextLine();
+                    System.out.print("Enter Price: ");
+                    double price = sc.nextDouble();
+                    System.out.print("Enter Quantity: ");
+                    int qty = sc.nextInt();
+                    sc.nextLine();
+                    controller.addProduct(new Product(id, name, price, qty));
+                    break;
+                case 2:
+                    controller.viewProducts();
+                    break;
+                case 3:
+                    System.out.print("Enter Product ID to update: ");
+                    String uid = sc.nextLine();
+                    System.out.print("Enter New Name: ");
+                    String uname = sc.nextLine();
+                    System.out.print("Enter New Price: ");
+                    double uprice = sc.nextDouble();
+                    System.out.print("Enter New Quantity: ");
+                    int uqty = sc.nextInt();
+                    sc.nextLine();
+                    controller.updateProduct(new Product(uid, uname, uprice, uqty));
+                    break;
+                case 4:
+                    System.out.print("Enter Product ID to delete: ");
+                    String did = sc.nextLine();
+                    controller.deleteProduct(did);
+                    break;
+                case 5:
+                    System.out.println("Exiting...");
+                    sc.close();
+                    System.exit(0);
+                default:
+                    System.out.println("Invalid choice. Try again.");
+            }
+        }
+    }
+}
