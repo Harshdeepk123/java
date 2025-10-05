@@ -1,0 +1,142 @@
+import java.sql.*;
+import java.util.Scanner;
+import java.util.ArrayList;
+
+class Student {
+    private String id;
+    private String name;
+    private String department;
+    private int marks;
+
+    public Student(String id, String name, String department, int marks) {
+        this.id = id;
+        this.name = name;
+        this.department = department;
+        this.marks = marks;
+    }
+
+    public String getId() { return id; }
+    public String getName() { return name; }
+    public String getDepartment() { return department; }
+    public int getMarks() { return marks; }
+
+    public void setName(String name) { this.name = name; }
+    public void setDepartment(String department) { this.department = department; }
+    public void setMarks(int marks) { this.marks = marks; }
+}
+
+class StudentController {
+    private Connection conn;
+
+    public StudentController() {
+        try {
+            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/studentdb","root","password");
+        } catch(Exception e) {
+            System.out.println(e);
+        }
+    }
+
+    public void addStudent(Student s) {
+        try {
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO students VALUES(?,?,?,?)");
+            ps.setString(1, s.getId());
+            ps.setString(2, s.getName());
+            ps.setString(3, s.getDepartment());
+            ps.setInt(4, s.getMarks());
+            ps.executeUpdate();
+        } catch(Exception e) {
+            System.out.println(e);
+        }
+    }
+
+    public ArrayList<Student> getAllStudents() {
+        ArrayList<Student> list = new ArrayList<>();
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM students");
+            while(rs.next()) {
+                list.add(new Student(rs.getString(1), rs.getString(2), rs.getString(3), rs.getInt(4)));
+            }
+        } catch(Exception e) {
+            System.out.println(e);
+        }
+        return list;
+    }
+
+    public void updateStudent(Student s) {
+        try {
+            PreparedStatement ps = conn.prepareStatement("UPDATE students SET name=?, department=?, marks=? WHERE id=?");
+            ps.setString(1, s.getName());
+            ps.setString(2, s.getDepartment());
+            ps.setInt(3, s.getMarks());
+            ps.setString(4, s.getId());
+            ps.executeUpdate();
+        } catch(Exception e) {
+            System.out.println(e);
+        }
+    }
+
+    public void deleteStudent(String id) {
+        try {
+            PreparedStatement ps = conn.prepareStatement("DELETE FROM students WHERE id=?");
+            ps.setString(1, id);
+            ps.executeUpdate();
+        } catch(Exception e) {
+            System.out.println(e);
+        }
+    }
+}
+
+public class StudentView {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        StudentController controller = new StudentController();
+        while(true) {
+            System.out.println("\n1. Add Student\n2. View All Students\n3. Update Student\n4. Delete Student\n5. Exit");
+            int choice = sc.nextInt();
+            sc.nextLine(); // consume newline
+            switch(choice) {
+                case 1:
+                    System.out.print("Enter ID: ");
+                    String id = sc.nextLine();
+                    System.out.print("Enter Name: ");
+                    String name = sc.nextLine();
+                    System.out.print("Enter Department: ");
+                    String dept = sc.nextLine();
+                    System.out.print("Enter Marks: ");
+                    int marks = sc.nextInt();
+                    sc.nextLine();
+                    controller.addStudent(new Student(id, name, dept, marks));
+                    break;
+                case 2:
+                    ArrayList<Student> students = controller.getAllStudents();
+                    System.out.println("ID\tName\tDepartment\tMarks");
+                    for(Student s : students) {
+                        System.out.println(s.getId() + "\t" + s.getName() + "\t" + s.getDepartment() + "\t" + s.getMarks());
+                    }
+                    break;
+                case 3:
+                    System.out.print("Enter ID to update: ");
+                    String uid = sc.nextLine();
+                    System.out.print("Enter New Name: ");
+                    String uname = sc.nextLine();
+                    System.out.print("Enter New Department: ");
+                    String udept = sc.nextLine();
+                    System.out.print("Enter New Marks: ");
+                    int umarks = sc.nextInt();
+                    sc.nextLine();
+                    controller.updateStudent(new Student(uid, uname, udept, umarks));
+                    break;
+                case 4:
+                    System.out.print("Enter ID to delete: ");
+                    String did = sc.nextLine();
+                    controller.deleteStudent(did);
+                    break;
+                case 5:
+                    System.out.println("Exiting...");
+                    sc.close();
+                    System.exit(0);
+            }
+        }
+    }
+}
